@@ -421,14 +421,11 @@ static void updateArcballScale() {
 
 static void drawBall(const ShaderState &curSS) {
     // switch to wire frame mode
-
-    RigTForm arcballEye =
-        inv(getPathAccumRbt(g_world, g_currentCameraNode)) * getArcballRbt();
-    Matrix4 MVM = rigTFormToMatrix(arcballEye) *
-                  Matrix4::makeScale(Cvec3(1, 1, 1) * g_arcballScale *
-                                     g_arcballScreenRadius);
-    sendModelViewNormalMatrix(curSS, MVM, normalMatrix(MVM));
-
+     const RigTForm eyeRbt = getPathAccumRbt(g_world, g_currentCameraNode);
+    const RigTForm invEyeRbt = inv(eyeRbt);
+    Matrix4 MVM = rigTFormToMatrix(invEyeRbt) * rigTFormToMatrix(g_objectRbt); //question
+    Matrix4 NMVM = normalMatrix(MVM);
+    sendModelViewNormalMatrix(curSS, MVM, NMVM);
     safe_glUniform3f(curSS.h_uColor, 1.0, 0.0, 1.0); // set color
     g_ball->draw(curSS);
 
@@ -471,8 +468,8 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
     safe_glUniform3f(curSS.h_uLight2, eyeLight2[0], eyeLight2[1], eyeLight2[2]);
 
     
-   const Cvec3 bouncyball = Cvec3(invEyeRbt * Cvec4(g_bouncyball, 1));
-   safe_glUniform3f(curSS.h_uBouncyBall, bouncyball[0], bouncyball[1], bouncyball[2]);
+//    const Cvec3 bouncyball = Cvec3(invEyeRbt * Cvec4(g_bouncyball, 1));
+//    safe_glUniform3f(curSS.h_uBouncyBall, bouncyball[0], bouncyball[1], bouncyball[2]);
 //    g_bouncyball->draw(curSS);
     if (!picking) {
         Drawer drawer(invEyeRbt, curSS);
