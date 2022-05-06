@@ -70,6 +70,9 @@ static double g_arcballScale = 1;
 static bool g_pickingMode = false;
 
 static bool g_playingAnimation = false;
+static Cvec3 g_objectColors = Cvec3(1, 0, 0);
+static RigTForm g_objectRbt = RigTForm((Cvec3(-1, 0, 0)), Quat());
+
 
 // -------- Shaders
 static const int g_numShaders = 3, g_numRegularShaders = 2;
@@ -157,12 +160,13 @@ struct Geometry {
 typedef SgGeometryShapeNode<Geometry> MyShapeNode;
 
 // Vertex buffer and index buffer associated with the ground and cube geometry
-static shared_ptr<Geometry> g_ground, g_cube, g_sphere;
+static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_ball;
 
 // --------- Scene
 
-static const Cvec3 g_light1(2.0, 3.0, 14.0),
-    g_light2(-2, -3.0, -5.0); // define two lights positions in world space
+static const Cvec3 g_light1(2.0, 3.0, 14.0),  g_light2(-2, -3.0, -5.0); 
+static const Cvec3 g_bouncyball(0.0, 1.0, 0.0);
+// define two lights positions in world space
 
 static shared_ptr<SgRootNode> g_world;
 static shared_ptr<SgRbtNode> g_skyNode, g_groundNode, g_robot1Node,
@@ -334,6 +338,7 @@ static void initSphere() {
     vector<unsigned short> idx(ibLen);
     makeSphere(1, 20, 10, vtx.begin(), idx.begin());
     g_sphere.reset(new Geometry(&vtx[0], &idx[0], vtx.size(), idx.size()));
+    g_ball.reset(new Geometry(&vtx[0], &idx[0], vtx.size(), idx.size()));
 }
 
 static void initRobots() {
@@ -414,6 +419,21 @@ static void updateArcballScale() {
             getScreenToEyeScale(depth, g_frustFovY, g_windowHeight);
 }
 
+static void drawBall(const ShaderState &curSS) {
+    // switch to wire frame mode
+
+    RigTForm arcballEye =
+        inv(getPathAccumRbt(g_world, g_currentCameraNode)) * getArcballRbt();
+    Matrix4 MVM = rigTFormToMatrix(arcballEye) *
+                  Matrix4::makeScale(Cvec3(1, 1, 1) * g_arcballScale *
+                                     g_arcballScreenRadius);
+    sendModelViewNormalMatrix(curSS, MVM, normalMatrix(MVM));
+
+    safe_glUniform3f(curSS.h_uColor, 1.0, 0.0, 1.0); // set color
+    g_ball->draw(curSS);
+
+    // switch back to solid mode
+}
 static void drawArcBall(const ShaderState &curSS) {
     // switch to wire frame mode
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -450,6 +470,10 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
     safe_glUniform3f(curSS.h_uLight, eyeLight1[0], eyeLight1[1], eyeLight1[2]);
     safe_glUniform3f(curSS.h_uLight2, eyeLight2[0], eyeLight2[1], eyeLight2[2]);
 
+    
+   const Cvec3 bouncyball = Cvec3(invEyeRbt * Cvec4(g_bouncyball, 1));
+   safe_glUniform3f(curSS.h_uBouncyBall, bouncyball[0], bouncyball[1], bouncyball[2]);
+//    g_bouncyball->draw(curSS);
     if (!picking) {
         Drawer drawer(invEyeRbt, curSS);
         g_world->accept(drawer);
@@ -476,10 +500,19 @@ static void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     drawStuff(*g_shaderStates[g_activeShader], false);
+    drawBall(*g_shaderStates[g_activeShader]);
 
     glfwSwapBuffers(g_window);
 
     checkGlErrors();
+
+    // draw sphere
+    // Matrix4 MVM = rigTFormToMatrix(invEyeRbt) * rigTFormToMatrix(g_objectRbt); //question
+    // Matrix4 NMVM = normalMatrix(MVM);
+    // sendModelViewNormalMatrix(curSS, MVM, NMVM);
+    // safe_glUniform3f(curSS.h_uColor, g_objectColors[0],
+    //                      g_objectColors[1], g_objectColors[2]);
+    // g_bouncyball->draw(curSS);
 }
 
 static void pick() {

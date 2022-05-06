@@ -15,6 +15,7 @@ struct ShaderState {
 
     // Handles to uniform variables
     GLint h_uLight, h_uLight2;
+    GLint h_uBouncyBall;
     GLint h_uProjMatrix;
     GLint h_uModelViewMatrix;
     GLint h_uNormalMatrix;
