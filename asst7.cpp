@@ -71,8 +71,8 @@ static bool g_pickingMode = false;
 
 static bool g_playingAnimation = false;
 static Cvec3 g_objectColors = Cvec3(1, 0, 0);
-static RigTForm g_objectRbt = RigTForm((Cvec3(-1, 0, 0)), Quat());
-
+double g_ballpos = 0;
+static RigTForm g_objectRbt = RigTForm((Cvec3(0, -1, -1)), Quat());
 
 // -------- Shaders
 static const int g_numShaders = 3, g_numRegularShaders = 2;
@@ -421,7 +421,8 @@ static void updateArcballScale() {
 
 static void drawBall(const ShaderState &curSS) {
     // switch to wire frame mode
-     const RigTForm eyeRbt = getPathAccumRbt(g_world, g_currentCameraNode);
+    // cerr << "hi" << endl;
+    const RigTForm eyeRbt = getPathAccumRbt(g_world, g_currentCameraNode);
     const RigTForm invEyeRbt = inv(eyeRbt);
     Matrix4 MVM = rigTFormToMatrix(invEyeRbt) * rigTFormToMatrix(g_objectRbt); //question
     Matrix4 NMVM = normalMatrix(MVM);
@@ -727,6 +728,22 @@ static void mouse(GLFWwindow *window, int button, int state, int mods) {
 static void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS || action == GLFW_REPEAT) {
         switch (key) {
+        case GLFW_KEY_RIGHT:
+            g_ballpos += 1.05;
+            cerr << "ball pos = " << g_ballpos << endl;
+        break;
+        case GLFW_KEY_LEFT:
+            g_ballpos -= 1.05;
+            cerr << "ball pos = " << g_ballpos << endl;
+        break;
+        // case GLFW_KEY_UP:
+        //     g_hairyness *= 1.05;
+        //     cerr << "hairyness = " << g_hairyness <<endl;
+        // break;
+        // case GLFW_KEY_DOWN:
+        //     g_hairyness /= 1.05;
+        //     cerr << "hairyness = " << g_hairyness <<endl;
+        // break;
         case GLFW_KEY_SPACE:
             g_spaceDown = true;
             break;
