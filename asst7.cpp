@@ -78,7 +78,7 @@ static RigTForm g_objectRbt = RigTForm((Cvec3(0, -1, -1)), Quat());
 static const int g_numShaders = 3, g_numRegularShaders = 2;
 static const int PICKING_SHADER = 2;
 static const char *const g_shaderFiles[g_numShaders][2] = {
-    {"./shaders/basic-gl3.vshader", "./shaders/diffuse-gl3.fshader"},
+    {"./shaders/basic-gl3.vshader", "./shaders/shiny-gl3.fshader"},
     {"./shaders/basic-gl3.vshader", "./shaders/solid-gl3.fshader"},
     {"./shaders/basic-gl3.vshader", "./shaders/pick-gl3.fshader"}};
 static vector<shared_ptr<ShaderState>>
