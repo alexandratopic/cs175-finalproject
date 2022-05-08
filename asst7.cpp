@@ -386,8 +386,8 @@ static ManipMode getManipMode() {
             return EGO_MOTION;
     } else
         return ARCBALL_ON_PICKED;
-}
 
+}
 static bool shouldUseArcball() {
     return (g_currentPickedRbtNode != 0);
     //  return getManipMode() != EGO_MOTION;
@@ -419,9 +419,9 @@ static void updateArcballScale() {
             getScreenToEyeScale(depth, g_frustFovY, g_windowHeight);
 }
 
+
 static void drawBall(const ShaderState &curSS) {
     // switch to wire frame mode
-    // cerr << "hi" << endl;
     const RigTForm eyeRbt = getPathAccumRbt(g_world, g_currentCameraNode);
     const RigTForm invEyeRbt = inv(eyeRbt);
     Matrix4 MVM = rigTFormToMatrix(invEyeRbt) * rigTFormToMatrix(g_objectRbt); //question
@@ -450,12 +450,13 @@ static void drawArcBall(const ShaderState &curSS) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+
 static void drawStuff(const ShaderState &curSS, bool picking) {
+     
     // if we are not translating, update arcball scale
     if (!(g_mouseMClickButton || (g_mouseLClickButton && g_mouseRClickButton) ||
           (g_mouseLClickButton && !g_mouseRClickButton && g_spaceDown)))
         updateArcballScale();
-
     // build & send proj. matrix to vshader
     const Matrix4 projmat = makeProjectionMatrix();
     sendProjectionMatrix(curSS, projmat);
@@ -581,6 +582,29 @@ static Cvec3 getArcballDirection(const Cvec2 &p, const double r) {
         return normalize(Cvec3(p, sqrt(r * r - n2)));
 }
 
+
+static RigTForm updateBallPosition(const Cvec2 &p0, const Cvec2 &p1) {
+    cerr << "hi" << endl;
+    const Matrix4 projMatrix = makeProjectionMatrix();
+    const RigTForm eyeInverse = inv(getPathAccumRbt(g_world, g_currentCameraNode));
+    const Cvec3 ballCenter = g_objectRbt.getTranslation();
+    const Cvec3 arcballCenter_ec = Cvec3(eyeInverse * Cvec4(ballCenter, 1));
+     Cvec2 ballScreenCenter =
+        getScreenSpaceCoord(arcballCenter_ec, projMatrix, g_frustNear,
+                            g_frustFovY, g_windowWidth, g_windowHeight);
+    const Cvec3 v0 =
+        getArcballDirection(p0 - ballScreenCenter, g_arcballScreenRadius);
+    const Cvec3 v1 =
+        getArcballDirection(p1 - ballScreenCenter, g_arcballScreenRadius);
+    
+    g_objectRbt = RigTForm(Quat(0.0, 5.0, 5.0, 5.0) *
+                    Quat(0.0, 50.0, 50.0, 50.0));
+    return RigTForm(Quat(0.0, 5.0, 5.0, 5.0) *
+                    Quat(0.0, 50.0, 50.0, 50.0));
+    // g_objectRbt = g_objectRbt + RigTForm(Cvec3(0.0, 3.0, 0.0), Quat());
+}
+
+
 static RigTForm moveArcball(const Cvec2 &p0, const Cvec2 &p1) {
     const Matrix4 projMatrix = makeProjectionMatrix();
     const RigTForm eyeInverse =
@@ -610,7 +634,7 @@ static RigTForm doMtoOwrtA(const RigTForm &M, const RigTForm &O,
 
 static RigTForm getMRbt(const double dx, const double dy) {
     RigTForm M;
-
+    updateBallPosition(Cvec2(3.0, 4.0), Cvec2(10.0, 10.0));
     if (g_mouseLClickButton && !g_mouseRClickButton && !g_spaceDown) {
         if (shouldUseArcball())
             M = moveArcball(Cvec2(g_mouseClickX, g_mouseClickY),
@@ -728,22 +752,23 @@ static void mouse(GLFWwindow *window, int button, int state, int mods) {
 static void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS || action == GLFW_REPEAT) {
         switch (key) {
+        case GLFW_KEY_UP:
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .1), g_objectRbt.getTranslation()[2]), Quat());
+            cout <<  "new y pos" << g_objectRbt.getTranslation()[1] << endl;
+
+        break;
+        case GLFW_KEY_DOWN:
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .1), g_objectRbt.getTranslation()[2]), Quat());
+            cout <<  "new y pos" << g_objectRbt.getTranslation()[1] << endl;
+        break;
         case GLFW_KEY_RIGHT:
-            g_ballpos += 1.05;
-            cerr << "ball pos = " << g_ballpos << endl;
+            g_objectRbt = RigTForm(Cvec3((g_objectRbt.getTranslation()[0] + .1), g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat());
+            cout <<  "new x pos" << g_objectRbt.getTranslation()[0] << endl;
         break;
         case GLFW_KEY_LEFT:
-            g_ballpos -= 1.05;
-            cerr << "ball pos = " << g_ballpos << endl;
+            g_objectRbt = RigTForm(Cvec3((g_objectRbt.getTranslation()[0] - .1), g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat());
+            cout <<  "new x pos" << g_objectRbt.getTranslation()[0] << endl;
         break;
-        // case GLFW_KEY_UP:
-        //     g_hairyness *= 1.05;
-        //     cerr << "hairyness = " << g_hairyness <<endl;
-        // break;
-        // case GLFW_KEY_DOWN:
-        //     g_hairyness /= 1.05;
-        //     cerr << "hairyness = " << g_hairyness <<endl;
-        // break;
         case GLFW_KEY_SPACE:
             g_spaceDown = true;
             break;
