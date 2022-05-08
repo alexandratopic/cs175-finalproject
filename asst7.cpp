@@ -45,7 +45,8 @@ static const float g_frustNear = -0.1;  // near plane
 static const float g_frustFar = -50.0;  // far plane
 static const float g_groundY = -2.0;    // y coordinate of the ground
 static const float g_groundSize = 10.0; // half the ground length
-
+static double g_numStepsPerFrame = 10;
+static const float g_bounceMax = 1.4; // maximum height of the bounce
 static GLFWwindow *g_window;
 
 static int g_windowWidth = 512;
@@ -68,7 +69,7 @@ static double g_arcballScreenRadius = 100; // number of pixels
 static double g_arcballScale = 1;
 
 static bool g_pickingMode = false;
-
+static bool g_up = true;
 static bool g_playingAnimation = false;
 static Cvec3 g_objectColors = Cvec3(1, 0, 0);
 double g_ballpos = 0;
@@ -583,25 +584,46 @@ static Cvec3 getArcballDirection(const Cvec2 &p, const double r) {
 }
 
 
-static RigTForm updateBallPosition(const Cvec2 &p0, const Cvec2 &p1) {
-    cerr << "hi" << endl;
-    const Matrix4 projMatrix = makeProjectionMatrix();
-    const RigTForm eyeInverse = inv(getPathAccumRbt(g_world, g_currentCameraNode));
-    const Cvec3 ballCenter = g_objectRbt.getTranslation();
-    const Cvec3 arcballCenter_ec = Cvec3(eyeInverse * Cvec4(ballCenter, 1));
-     Cvec2 ballScreenCenter =
-        getScreenSpaceCoord(arcballCenter_ec, projMatrix, g_frustNear,
-                            g_frustFovY, g_windowWidth, g_windowHeight);
-    const Cvec3 v0 =
-        getArcballDirection(p0 - ballScreenCenter, g_arcballScreenRadius);
-    const Cvec3 v1 =
-        getArcballDirection(p1 - ballScreenCenter, g_arcballScreenRadius);
-    
-    g_objectRbt = RigTForm(Quat(0.0, 5.0, 5.0, 5.0) *
-                    Quat(0.0, 50.0, 50.0, 50.0));
+static RigTForm updateBallPosition() {
+    for (int a = 0; a < 1000; ++a){
+        if (g_objectRbt.getTranslation()[1] + .1 > g_bounceMax) {
+            g_up = false;
+        }
+
+        else if (g_objectRbt.getTranslation()[1] - 1 < g_groundY) {
+          // then go down
+          g_up = true;
+        }
+
+        if (g_up == true) {
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .1), g_objectRbt.getTranslation()[2]), Quat());
+        }
+        else {
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .1), g_objectRbt.getTranslation()[2]), Quat());
+        }
+        
+        
+        
+        
+        
+        // const Matrix4 projMatrix = makeProjectionMatrix();
+        // const RigTForm eyeInverse = inv(getPathAccumRbt(g_world, g_currentCameraNode));
+        // const Cvec3 ballCenter = g_objectRbt.getTranslation();
+        // const Cvec3 arcballCenter_ec = Cvec3(eyeInverse * Cvec4(ballCenter, 1));
+        // Cvec2 ballScreenCenter =
+        //     getScreenSpaceCoord(arcballCenter_ec, projMatrix, g_frustNear,
+        //                         g_frustFovY, g_windowWidth, g_windowHeight);
+        // const Cvec3 v0 =
+        //     getArcballDirection(p0 - ballScreenCenter, g_arcballScreenRadius);
+        // const Cvec3 v1 =
+        //     getArcballDirection(p1 - ballScreenCenter, g_arcballScreenRadius);
+        
+        // g_objectRbt = RigTForm(Quat(0.0, 5.0, 5.0, 5.0) *
+        //                 Quat(0.0, 50.0, 50.0, 50.0));
+        // g_objectRbt = g_objectRbt + RigTForm(Cvec3(0.0, 3.0, 0.0), Quat());
+    }
     return RigTForm(Quat(0.0, 5.0, 5.0, 5.0) *
-                    Quat(0.0, 50.0, 50.0, 50.0));
-    // g_objectRbt = g_objectRbt + RigTForm(Cvec3(0.0, 3.0, 0.0), Quat());
+                        Quat(0.0, 50.0, 50.0, 50.0));
 }
 
 
@@ -634,7 +656,7 @@ static RigTForm doMtoOwrtA(const RigTForm &M, const RigTForm &O,
 
 static RigTForm getMRbt(const double dx, const double dy) {
     RigTForm M;
-    updateBallPosition(Cvec2(3.0, 4.0), Cvec2(10.0, 10.0));
+    // updateBallPosition(Cvec2(3.0, 4.0), Cvec2(10.0, 10.0));
     if (g_mouseLClickButton && !g_mouseRClickButton && !g_spaceDown) {
         if (shouldUseArcball())
             M = moveArcball(Cvec2(g_mouseClickX, g_mouseClickY),
@@ -752,6 +774,11 @@ static void mouse(GLFWwindow *window, int button, int state, int mods) {
 static void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS || action == GLFW_REPEAT) {
         switch (key) {
+        case GLFW_KEY_B:
+           updateBallPosition();
+           cout <<  "bounce" << endl;
+
+        break;
         case GLFW_KEY_UP:
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .1), g_objectRbt.getTranslation()[2]), Quat());
             cout <<  "new y pos" << g_objectRbt.getTranslation()[1] << endl;
