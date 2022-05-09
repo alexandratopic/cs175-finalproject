@@ -478,6 +478,10 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
         cout << positionY << endl;
 
         if (g_up == true) {
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.03, g_objectRbt.getTranslation()[2]), Quat());
+
+        }
+        else {
             static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY);
             static float dampingForceY = damping * velocityY;
             static float forceY = springForceY + mass * gravity - dampingForceY;
@@ -485,9 +489,6 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
             velocityY = velocityY + accelerationY * timeStep;
             positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
-        }
-        else {
-            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]-.03, g_objectRbt.getTranslation()[2]), Quat());
         }
     }
 
