@@ -464,9 +464,10 @@ static float  anchorY = .1;
 static float k = .3;
 static float damping = .1;
 static void drawStuff(const ShaderState &curSS, bool picking) {
-     
+     static float floor_hits = 0;
     // // xtra
     if (g_bounce == true){
+        
         if (g_objectRbt.getTranslation()[1] > g_bounceMax) {
             g_up = false;
         }
@@ -475,20 +476,38 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
             // then go down
             g_up = true;
         }
-        cout << positionY << endl;
+        // cout << positionY << endl;
 
         if (g_up == true) {
+             if (g_bounceMax < -1.2) {
+                g_bounceMax = 1.4;
+                g_bounce = false;
+                cout << "YO" << floor_hits << endl; 
+                return;
+            }
+            // static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY);
+            // static float dampingForceY = damping * velocityY;
+            // static float forceY = springForceY + mass * gravity - dampingForceY;
+            // static float accelerationY = forceY/mass;
+            // velocityY = velocityY + accelerationY * timeStep;
+            // positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
+            // velocityY = velocityY + accelerationY * timeStep;
+            // cout << "up" << velocity
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.08, g_objectRbt.getTranslation()[2]), Quat());
 
         }
         else {
+            g_bounceMax = g_bounceMax - .08;
             static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY);
             static float dampingForceY = damping * velocityY;
             static float forceY = springForceY + mass * gravity - dampingForceY;
             static float accelerationY = forceY/mass;
+            // cout << "acceleration" << accelerationY << endl;
             velocityY = velocityY + accelerationY * timeStep;
+            // cout << velocityY << endl;
             positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
+            floor_hits++;
         }
     }
 
@@ -697,8 +716,9 @@ static RigTForm updateBallPosition() {
             velocityY = velocityY + accelerationY * timeStep;
             positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
         }
-        cout << "g_up" << g_up << endl;
-        cout << mass << endl;
+        // cout << "g_up" << g_up << endl;
+        // cout << mass << endl;
+        // cout << "hey" << endl;
         // mass = -.2;
         
        
