@@ -478,7 +478,7 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
         cout << positionY << endl;
 
         if (g_up == true) {
-            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.03, g_objectRbt.getTranslation()[2]), Quat());
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.08, g_objectRbt.getTranslation()[2]), Quat());
 
         }
         else {
