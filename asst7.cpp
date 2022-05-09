@@ -46,7 +46,8 @@ static const float g_frustFar = -50.0;  // far plane
 static const float g_groundY = -2.0;    // y coordinate of the ground
 static const float g_groundSize = 10.0; // half the ground length
 static double g_numStepsPerFrame = 10;
-static const float g_bounceMax = 1.4; // maximum height of the bounce
+static float g_bounceMax = 1.4; // maximum height of the bounce
+static float g_gravity = .1;
 static GLFWwindow *g_window;
 
 static int g_windowWidth = 512;
@@ -450,10 +451,57 @@ static void drawArcBall(const ShaderState &curSS) {
     // switch back to solid mode
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
-
-
+static float gravity = .2;
+static float mass = .2;
+static float positionY = g_objectRbt.getTranslation()[1];
+static float velocityY = 0.;
+static float timeStep = 0.18;
+static float anchorX = .1;
+static float  anchorY = .1;
+static float k = .4;
+static float damping = .2;
 static void drawStuff(const ShaderState &curSS, bool picking) {
      
+    // // xtra
+    if (g_objectRbt.getTranslation()[1] > g_bounceMax) {
+        g_up = false;
+    }
+
+    else if (g_objectRbt.getTranslation()[1] - .1 < g_groundY) {
+        // then go down
+        g_up = true;
+    }
+        // increase = a % 10;
+        // g_gravity = increase * .1 + g_gravity;
+    if (g_up == true) {
+        g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .1), g_objectRbt.getTranslation()[2]), Quat());
+    }
+    else {
+        g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .1), g_objectRbt.getTranslation()[2]), Quat());
+    }
+
+
+
+
+
+     
+    //  static float springForceY = -k*(positionY - anchorY);
+    //  static float dampingForceY = damping * velocityY;
+    //  static float forceY = springForceY + mass * gravity - dampingForceY;
+    //  static float accelerationY = forceY/mass;
+    //  velocityY = velocityY + accelerationY * timeStep;
+    //  positionY = positionY + velocityY * timeStep;
+     
+    
+    // g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
+    // cout << g_objectRbt.getTranslation()[0] << g_objectRbt.getTranslation()[1] << g_objectRbt.getTranslation()[2] << endl;
+    //  // end xtra
+
+
+
+
+
+
     // if we are not translating, update arcball scale
     if (!(g_mouseMClickButton || (g_mouseLClickButton && g_mouseRClickButton) ||
           (g_mouseLClickButton && !g_mouseRClickButton && g_spaceDown)))
@@ -583,24 +631,118 @@ static Cvec3 getArcballDirection(const Cvec2 &p, const double r) {
         return normalize(Cvec3(p, sqrt(r * r - n2)));
 }
 
+// static float gravity = 10.;
+// static float mass = 30.;
+// static float positionY = 100.;
+// static float velocityY = 0.;
+// static float timeStep = 0.28;
+// static float anchorX = 209.;
+// static float  anchorY = 181.;
+// static float k = 7.;
+
+
+//  var springForceY = -k*(positionY - anchorY);
+//      var forceY = springForceY + mass * gravity;
+//      var accelerationY = forceY/mass;
+//      velocityY = velocityY + accelerationY * timeStep;
+//      positionY = positionY + velocityY * timeStep;
+    
+//      // DRAW SPRING-MASS
+//      background(255, 255, 255);
+//      rect(anchorX-5, anchorY-5, 10, 10);
+//      line(210, positionY, anchorX, anchorY);
+//      ellipse(210, positionY, 20, 20);
+
 
 static RigTForm updateBallPosition() {
-    for (int a = 0; a < 1000; ++a){
-        if (g_objectRbt.getTranslation()[1] + .1 > g_bounceMax) {
+    static float increase = 0;
+    // for (int a = 0; a < 2; ++a) {
+       // xtra
+        if (g_objectRbt.getTranslation()[1] > g_bounceMax) {
             g_up = false;
         }
 
-        else if (g_objectRbt.getTranslation()[1] - 1 < g_groundY) {
-          // then go down
+        if (g_objectRbt.getTranslation()[1] < g_groundY) {
           g_up = true;
         }
-
+        
         if (g_up == true) {
-            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .1), g_objectRbt.getTranslation()[2]), Quat());
+            cout << "yo1" << endl;
+            mass = .2;
+            static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY); 
+            static float dampingForceY = damping * velocityY;
+            static float forceY = springForceY + mass * gravity - dampingForceY;
+            static float accelerationY = forceY/mass;
+            velocityY = velocityY + accelerationY * timeStep;
+            positionY  = g_objectRbt.getTranslation()[1]  + velocityY * timeStep;
         }
         else {
-            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .1), g_objectRbt.getTranslation()[2]), Quat());
+            cout << "yo2" << endl;
+            mass = -.2;
+            static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY);
+            static float dampingForceY = damping * velocityY;
+            static float forceY = springForceY + mass * gravity - dampingForceY;
+            static float accelerationY = forceY/mass;
+            velocityY = velocityY + accelerationY * timeStep;
+            positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
         }
+        cout << "g_up" << g_up << endl;
+        cout << mass << endl;
+        // mass = -.2;
+        
+       
+    
+       
+        // // increase = a % 10;
+        // // g_gravity = increase * .1 + g_gravity;
+        // if (g_up == true) {
+        //     g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .3), g_objectRbt.getTranslation()[2]), Quat());
+        //     cout << a << endl;
+        // }
+        // else {
+        //     g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .3), g_objectRbt.getTranslation()[2]), Quat());
+        // }
+
+        
+        g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
+        cout << positionY << endl;
+        // end xtra
+
+
+
+
+
+
+
+
+
+        // //  if (g_animator.getNumKeyFrames() != 0)
+        // //         ++g_curKeyFrameNum;
+        // // g_curKeyFrame = g_animator.insertEmptyKeyFrameAfter(g_curKeyFrame);
+        // // g_animator.pullKeyFrameFromSg(g_curKeyFrame);
+        // // glfwSetTime(0.5);
+        // // while (glfwGetTime() > 0.0)
+        // // {
+
+        // // }
+        // if (g_objectRbt.getTranslation()[1] + .1 > g_bounceMax) {
+        //     g_up = false;
+        //     g_bounceMax -= .1;
+        // }
+
+        // else if (g_objectRbt.getTranslation()[1] - .1 < g_groundY) {
+        //   // then go down
+        //   g_up = true;
+        // }
+        // // increase = a % 10;
+        // // g_gravity = increase * .1 + g_gravity;
+        // if (g_up == true) {
+        //     g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .3), g_objectRbt.getTranslation()[2]), Quat());
+        //     cout << a << endl;
+        // }
+        // else {
+        //     g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .3), g_objectRbt.getTranslation()[2]), Quat());
+        // }
         
         
         
@@ -621,9 +763,9 @@ static RigTForm updateBallPosition() {
         // g_objectRbt = RigTForm(Quat(0.0, 5.0, 5.0, 5.0) *
         //                 Quat(0.0, 50.0, 50.0, 50.0));
         // g_objectRbt = g_objectRbt + RigTForm(Cvec3(0.0, 3.0, 0.0), Quat());
-    }
-    return RigTForm(Quat(0.0, 5.0, 5.0, 5.0) *
-                        Quat(0.0, 50.0, 50.0, 50.0));
+    // }
+    // return RigTForm(Quat(0.0, 5.0, 5.0, 5.0) *
+    //                     Quat(0.0, 50.0, 50.0, 50.0));
 }
 
 
@@ -777,7 +919,7 @@ static void keyboard(GLFWwindow* window, int key, int scancode, int action, int 
         case GLFW_KEY_B:
            updateBallPosition();
            cout <<  "bounce" << endl;
-
+        //    g_bounceMax = 1.4;
         break;
         case GLFW_KEY_UP:
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .1), g_objectRbt.getTranslation()[2]), Quat());
