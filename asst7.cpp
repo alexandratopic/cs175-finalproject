@@ -47,6 +47,8 @@ static const float g_groundY = -2.0;    // y coordinate of the ground
 static const float g_groundSize = 10.0; // half the ground length
 static double g_numStepsPerFrame = 10;
 static float g_bounceMax = 1.4; // maximum height of the bounce
+static float g_bounceMin = -1.15; // maximum height of the bounce
+
 static float g_gravity = .1;
 static GLFWwindow *g_window;
 
@@ -69,6 +71,7 @@ static bool g_displayArcball = true;
 static double g_arcballScreenRadius = 100; // number of pixels
 static double g_arcballScale = 1;
 
+static bool g_bounce = false;
 static bool g_pickingMode = false;
 static bool g_up = true;
 static bool g_playingAnimation = false;
@@ -452,34 +455,41 @@ static void drawArcBall(const ShaderState &curSS) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 static float gravity = .2;
-static float mass = .2;
+static float mass = .1;
 static float positionY = g_objectRbt.getTranslation()[1];
 static float velocityY = 0.;
-static float timeStep = 0.18;
+static float timeStep = 0.03;
 static float anchorX = .1;
 static float  anchorY = .1;
-static float k = .4;
-static float damping = .2;
+static float k = .3;
+static float damping = .1;
 static void drawStuff(const ShaderState &curSS, bool picking) {
      
     // // xtra
-    if (g_objectRbt.getTranslation()[1] > g_bounceMax) {
-        g_up = false;
-    }
+    if (g_bounce == true){
+        if (g_objectRbt.getTranslation()[1] > g_bounceMax) {
+            g_up = false;
+        }
 
-    else if (g_objectRbt.getTranslation()[1] - .1 < g_groundY) {
-        // then go down
-        g_up = true;
-    }
-        // increase = a % 10;
-        // g_gravity = increase * .1 + g_gravity;
-    if (g_up == true) {
-        g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .1), g_objectRbt.getTranslation()[2]), Quat());
-    }
-    else {
-        g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .1), g_objectRbt.getTranslation()[2]), Quat());
-    }
+        else if (g_objectRbt.getTranslation()[1] - .1 < g_bounceMin) {
+            // then go down
+            g_up = true;
+        }
+        cout << positionY << endl;
 
+        if (g_up == true) {
+            static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY);
+            static float dampingForceY = damping * velocityY;
+            static float forceY = springForceY + mass * gravity - dampingForceY;
+            static float accelerationY = forceY/mass;
+            velocityY = velocityY + accelerationY * timeStep;
+            positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
+        }
+        else {
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]-.03, g_objectRbt.getTranslation()[2]), Quat());
+        }
+    }
 
 
 
@@ -918,6 +928,13 @@ static void keyboard(GLFWwindow* window, int key, int scancode, int action, int 
         switch (key) {
         case GLFW_KEY_B:
            updateBallPosition();
+           if (g_bounce == true) {
+               g_bounce = false;
+           }
+           else 
+           {
+               g_bounce = true;
+           }
            cout <<  "bounce" << endl;
         //    g_bounceMax = 1.4;
         break;
