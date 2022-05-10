@@ -46,10 +46,20 @@ static const float g_frustFar = -50.0;  // far plane
 static const float g_groundY = -2.0;    // y coordinate of the ground
 static const float g_groundSize = 10.0; // half the ground length
 static double g_numStepsPerFrame = 10;
+
+
 static float g_bounceMax = 2; // maximum height of the bounce
 static float g_bounceMin = -1.10; // maximum height of the bounce
+static float gravity = .2;
+static float mass = .07;
+static float velocityY = 0;
+static float timeStep = 0.03;
+static float anchorX = .07;
+static float anchorY = .07;
+static float k = .1;
+static float air_resistance = .1;
+static float friction = .2;
 
-static float g_gravity = .1;
 static GLFWwindow *g_window;
 
 static int g_windowWidth = 512;
@@ -79,6 +89,7 @@ static bool g_playingAnimation = false;
 static Cvec3 g_objectColors = Cvec3(1, 0, 0);
 double g_ballpos = 0;
 static RigTForm g_objectRbt = RigTForm((Cvec3(0, -1, -5)), Quat());
+static float positionY = g_objectRbt.getTranslation()[1];
 
 // -------- Shaders
 static const int g_numShaders = 4, g_numRegularShaders = 2;
@@ -462,16 +473,7 @@ static void drawArcBall(const ShaderState &curSS) {
     // switch back to solid mode
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
-static float gravity = .2;
-static float mass = .07;
-static float positionY = g_objectRbt.getTranslation()[1];
-static float velocityY = 0;
-static float timeStep = 0.03;
-static float anchorX = .1;
-static float  anchorY = .1;
-static float k = .2;
-static float damping = .1;
-static float friction = .2;
+
 static void drawStuff(const ShaderState &curSS, bool picking) {
 
     if (g_bounce == true) {
@@ -480,10 +482,10 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
             g_up = false;
         }
 
-        // go Up
+        // go up
         else if (g_objectRbt.getTranslation()[1] - .1 < g_bounceMin) {
             g_up = true;
-            // once ball hits the ground there is friction
+            // Once ball hits the ground there is friction
             if (g_elastic == false){
                 g_objectRbt = RigTForm(Cvec3((g_objectRbt.getTranslation()[0] + .05), g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat::makeXRotation(friction));
             }
@@ -506,12 +508,13 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
             }
             // ball dropping physics
             static float gravitational_force = -k*(g_objectRbt.getTranslation()[1] - anchorY)+ mass * gravity;
-            static float dampingForceY = damping * velocityY;
-            static float forceY = gravitational_force - dampingForceY;
+            static float air_resistance_force = air_resistance * velocityY;
+            static float forceY = gravitational_force - air_resistance_force;
             static float accelerationY = forceY/mass;
             // EULER STEPS
             velocityY = velocityY + accelerationY * timeStep;
             positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
+            // update ball position
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
         }
     }
@@ -558,8 +561,6 @@ static void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     drawStuff(*g_shaderStates[g_activeShader], false);
-    // g_activeShader = 2;
-    // g_activeShader = (g_activeShader + 1) % g_numRegularShaders;
     drawBall(*g_shaderStates[g_activeShader]);
 
     glfwSwapBuffers(g_window);
@@ -642,145 +643,6 @@ static Cvec3 getArcballDirection(const Cvec2 &p, const double r) {
     else
         return normalize(Cvec3(p, sqrt(r * r - n2)));
 }
-
-// static float gravity = 10.;
-// static float mass = 30.;
-// static float positionY = 100.;
-// static float velocityY = 0.;
-// static float timeStep = 0.28;
-// static float anchorX = 209.;
-// static float  anchorY = 181.;
-// static float k = 7.;
-
-
-//  var springForceY = -k*(positionY - anchorY);
-//      var forceY = springForceY + mass * gravity;
-//      var accelerationY = forceY/mass;
-//      velocityY = velocityY + accelerationY * timeStep;
-//      positionY = positionY + velocityY * timeStep;
-    
-//      // DRAW SPRING-MASS
-//      background(255, 255, 255);
-//      rect(anchorX-5, anchorY-5, 10, 10);
-//      line(210, positionY, anchorX, anchorY);
-//      ellipse(210, positionY, 20, 20);
-
-
-static RigTForm updateBallPosition() {
-    static float increase = 0;
-    // for (int a = 0; a < 2; ++a) {
-       // xtra
-        if (g_objectRbt.getTranslation()[1] > g_bounceMax) {
-            g_up = false;
-        }
-
-        if (g_objectRbt.getTranslation()[1] < g_groundY) {
-          g_up = true;
-        }
-        
-        if (g_up == true) {
-            cout << "yo1" << endl;
-            mass = .2;
-            static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY); 
-            static float dampingForceY = damping * velocityY;
-            static float forceY = springForceY + mass * gravity - dampingForceY;
-            static float accelerationY = forceY/mass;
-            velocityY = velocityY + accelerationY * timeStep;
-            positionY  = g_objectRbt.getTranslation()[1]  + velocityY * timeStep;
-        }
-        else {
-            cout << "yo2" << endl;
-            mass = -.2;
-            static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY);
-            static float dampingForceY = damping * velocityY;
-            static float forceY = springForceY + mass * gravity - dampingForceY;
-            static float accelerationY = forceY/mass;
-            velocityY = velocityY + accelerationY * timeStep;
-            positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
-        }
-        // cout << "g_up" << g_up << endl;
-        // cout << mass << endl;
-        // cout << "hey" << endl;
-        // mass = -.2;
-        
-       
-    
-       
-        // // increase = a % 10;
-        // // g_gravity = increase * .1 + g_gravity;
-        // if (g_up == true) {
-        //     g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .3), g_objectRbt.getTranslation()[2]), Quat());
-        //     cout << a << endl;
-        // }
-        // else {
-        //     g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .3), g_objectRbt.getTranslation()[2]), Quat());
-        // }
-
-        
-        g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
-        cout << positionY << endl;
-        // end xtra
-
-
-
-
-
-
-
-
-
-        // //  if (g_animator.getNumKeyFrames() != 0)
-        // //         ++g_curKeyFrameNum;
-        // // g_curKeyFrame = g_animator.insertEmptyKeyFrameAfter(g_curKeyFrame);
-        // // g_animator.pullKeyFrameFromSg(g_curKeyFrame);
-        // // glfwSetTime(0.5);
-        // // while (glfwGetTime() > 0.0)
-        // // {
-
-        // // }
-        // if (g_objectRbt.getTranslation()[1] + .1 > g_bounceMax) {
-        //     g_up = false;
-        //     g_bounceMax -= .1;
-        // }
-
-        // else if (g_objectRbt.getTranslation()[1] - .1 < g_groundY) {
-        //   // then go down
-        //   g_up = true;
-        // }
-        // // increase = a % 10;
-        // // g_gravity = increase * .1 + g_gravity;
-        // if (g_up == true) {
-        //     g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .3), g_objectRbt.getTranslation()[2]), Quat());
-        //     cout << a << endl;
-        // }
-        // else {
-        //     g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .3), g_objectRbt.getTranslation()[2]), Quat());
-        // }
-        
-        
-        
-        
-        
-        // const Matrix4 projMatrix = makeProjectionMatrix();
-        // const RigTForm eyeInverse = inv(getPathAccumRbt(g_world, g_currentCameraNode));
-        // const Cvec3 ballCenter = g_objectRbt.getTranslation();
-        // const Cvec3 arcballCenter_ec = Cvec3(eyeInverse * Cvec4(ballCenter, 1));
-        // Cvec2 ballScreenCenter =
-        //     getScreenSpaceCoord(arcballCenter_ec, projMatrix, g_frustNear,
-        //                         g_frustFovY, g_windowWidth, g_windowHeight);
-        // const Cvec3 v0 =
-        //     getArcballDirection(p0 - ballScreenCenter, g_arcballScreenRadius);
-        // const Cvec3 v1 =
-        //     getArcballDirection(p1 - ballScreenCenter, g_arcballScreenRadius);
-        
-        // g_objectRbt = RigTForm(Quat(0.0, 5.0, 5.0, 5.0) *
-        //                 Quat(0.0, 50.0, 50.0, 50.0));
-        // g_objectRbt = g_objectRbt + RigTForm(Cvec3(0.0, 3.0, 0.0), Quat());
-    // }
-    // return RigTForm(Quat(0.0, 5.0, 5.0, 5.0) *
-    //                     Quat(0.0, 50.0, 50.0, 50.0));
-}
-
 
 static RigTForm moveArcball(const Cvec2 &p0, const Cvec2 &p1) {
     const Matrix4 projMatrix = makeProjectionMatrix();
