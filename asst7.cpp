@@ -72,20 +72,28 @@ static double g_arcballScreenRadius = 100; // number of pixels
 static double g_arcballScale = 1;
 
 static bool g_bounce = false;
+static bool g_elastic = false;
 static bool g_pickingMode = false;
 static bool g_up = true;
 static bool g_playingAnimation = false;
 static Cvec3 g_objectColors = Cvec3(1, 0, 0);
 double g_ballpos = 0;
-static RigTForm g_objectRbt = RigTForm((Cvec3(0, -1, -1)), Quat());
+static RigTForm g_objectRbt = RigTForm((Cvec3(0, -1, -5)), Quat());
 
 // -------- Shaders
-static const int g_numShaders = 3, g_numRegularShaders = 2;
-static const int PICKING_SHADER = 2;
+static const int g_numShaders = 4, g_numRegularShaders = 2;
+static const int PICKING_SHADER = 3;
 static const char *const g_shaderFiles[g_numShaders][2] = {
     {"./shaders/basic-gl3.vshader", "./shaders/shiny-gl3.fshader"},
+    {"./shaders/basic-gl3.vshader", "./shaders/diffuse-gl3.fshader"},
     {"./shaders/basic-gl3.vshader", "./shaders/solid-gl3.fshader"},
     {"./shaders/basic-gl3.vshader", "./shaders/pick-gl3.fshader"}};
+
+
+static const char *const g_shaderFiles2[g_numShaders][2] = {
+    {"./shaders/basic-gl3.vshader", "./shaders/shiny-gl3.fshader"},
+    {"./shaders/basic-gl3.vshader", "./shaders/diffuse-gl3.fshader"},
+    {"./shaders/basic-gl3.vshader", "./shaders/solid-gl3.fshader"}};
 static vector<shared_ptr<ShaderState>>
     g_shaderStates; // our global shader states
 
@@ -424,12 +432,12 @@ static void updateArcballScale() {
             getScreenToEyeScale(depth, g_frustFovY, g_windowHeight);
 }
 
-
-static void drawBall(const ShaderState &curSS) {
+// DRAW BALL
+static void drawBall(const ShaderState &curSS)  {
     // switch to wire frame mode
     const RigTForm eyeRbt = getPathAccumRbt(g_world, g_currentCameraNode);
     const RigTForm invEyeRbt = inv(eyeRbt);
-    Matrix4 MVM = rigTFormToMatrix(invEyeRbt) * rigTFormToMatrix(g_objectRbt); //question
+    Matrix4 MVM = rigTFormToMatrix(invEyeRbt) * rigTFormToMatrix(g_objectRbt);
     Matrix4 NMVM = normalMatrix(MVM);
     sendModelViewNormalMatrix(curSS, MVM, NMVM);
     safe_glUniform3f(curSS.h_uColor, 1.0, 0.0, 1.0); // set color
@@ -455,19 +463,20 @@ static void drawArcBall(const ShaderState &curSS) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 static float gravity = .2;
-static float mass = .1;
+static float mass = .07;
 static float positionY = g_objectRbt.getTranslation()[1];
-static float velocityY = 0.;
+static float velocityY = 0;
 static float timeStep = 0.03;
 static float anchorX = .1;
 static float  anchorY = .1;
-static float k = .3;
+static float k = .2;
 static float damping = .1;
 static void drawStuff(const ShaderState &curSS, bool picking) {
      static float floor_hits = 0;
     // // xtra
     if (g_bounce == true){
         
+        for (int i = 0; i < g_numStepsPerFrame; ++i)
         if (g_objectRbt.getTranslation()[1] > g_bounceMax) {
             g_up = false;
         }
@@ -479,12 +488,16 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
         // cout << positionY << endl;
 
         if (g_up == true) {
-             if (g_bounceMax < -1.2) {
+            if (g_elastic == false){
+                if (g_bounceMax < -.9) {
                 g_bounceMax = 1.4;
                 g_bounce = false;
-                cout << "YO" << floor_hits << endl; 
+                // g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0] + .3, g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat::makeXRotation(-20));
+                // g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0]+.8, g_objectRbt.getTranslation()[1]+.08, g_objectRbt.getTranslation()[2]), Quat());
                 return;
+                }
             }
+             
             // static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY);
             // static float dampingForceY = damping * velocityY;
             // static float forceY = springForceY + mass * gravity - dampingForceY;
@@ -493,18 +506,22 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
             // positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
             // velocityY = velocityY + accelerationY * timeStep;
             // cout << "up" << velocity
-            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.08, g_objectRbt.getTranslation()[2]), Quat());
+
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.1, g_objectRbt.getTranslation()[2]), Quat());
 
         }
         else {
-            g_bounceMax = g_bounceMax - .08;
+            if (g_elastic == false){
+                g_bounceMax = g_bounceMax - .06;
+            }
             static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY);
+            static float friction;
             static float dampingForceY = damping * velocityY;
             static float forceY = springForceY + mass * gravity - dampingForceY;
             static float accelerationY = forceY/mass;
             // cout << "acceleration" << accelerationY << endl;
             velocityY = velocityY + accelerationY * timeStep;
-            // cout << velocityY << endl;
+            // cout << velocityY << endl;b
             positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
             floor_hits++;
@@ -578,6 +595,8 @@ static void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     drawStuff(*g_shaderStates[g_activeShader], false);
+    // g_activeShader = 2;
+    // g_activeShader = (g_activeShader + 1) % g_numRegularShaders;
     drawBall(*g_shaderStates[g_activeShader]);
 
     glfwSwapBuffers(g_window);
@@ -947,9 +966,20 @@ static void mouse(GLFWwindow *window, int button, int state, int mods) {
 static void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS || action == GLFW_REPEAT) {
         switch (key) {
+        case GLFW_KEY_E:
+          if (g_elastic == true) {
+              g_elastic = false;
+          }
+          else {
+              g_elastic = true;
+          }
+        break;
         case GLFW_KEY_B:
-           updateBallPosition();
+
+        //    updateBallPosition();
            if (g_bounce == true) {
+                // g_objectRbt = RigTForm(Quat::makeXRotation(-20));
+                // g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0] + .3, g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat::makeXRotation(-20));
                g_bounce = false;
            }
            else 
@@ -1248,8 +1278,15 @@ static void initGLState() {
 static void initShaders() {
     g_shaderStates.resize(g_numShaders);
     for (int i = 0; i < g_numShaders; ++i) {
+        // if (i == 0 ){
             g_shaderStates[i].reset(
                 new ShaderState(g_shaderFiles[i][0], g_shaderFiles[i][1]));
+        // }
+        // else 
+        // {
+        //       g_shaderStates[i].reset(
+        //         new ShaderState(g_shaderFiles2[i][0], g_shaderFiles2[i][1]));
+        // }
     }
 }
 
