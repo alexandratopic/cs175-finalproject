@@ -9,7 +9,7 @@ using namespace std;
 Picker::Picker(const RigTForm& initialRbt, const ShaderState& curSS)
   : drawer_(initialRbt, curSS)
   , idCounter_(0)
-  , srgbFrameBuffer_(!g_Gl2Compatible) {}
+  , srgbFrameBuffer_(true) {}
 
 bool Picker::visit(SgTransformNode& node) {
   nodeStack_.push_back(node.shared_from_this());

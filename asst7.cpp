@@ -475,21 +475,24 @@ static void drawArcBall(const ShaderState &curSS) {
 }
 
 static void drawStuff(const ShaderState &curSS, bool picking) {
+    // Bouncing ball drawing 
     if (g_bounce == true) {
-        // then go down
+        // Go down
         if (g_objectRbt.getTranslation()[1] > g_bounceMax) {
             g_up = false;
         }
 
-        // go up
+        // Go up
         else if (g_objectRbt.getTranslation()[1] - .1 < g_bounceMin) {
             g_up = true;
-            // Once ball hits the ground there is friction
+            // Once ball hits the ground there is friction (torque)
             if (g_elastic == false){
                 g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), (Quat::makeXRotation(friction) *  Quat::makeYRotation(friction)));
             }
         }
   
+
+        // Move the ball up if ball should be going up
         if (g_up == true) {
             if (g_elastic == false){
                 if (g_bounceMax < -1) {
@@ -498,29 +501,32 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
                 return;
                 }
             }
-        g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.1, g_objectRbt.getTranslation()[2]), Quat());
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.1, g_objectRbt.getTranslation()[2]), Quat());
 
         }
+        //  move the ball down
         else {
+            // NOT 100% Elastic 
             if (g_elastic == false){
                 g_bounceMax = g_bounceMax - .05;
             }
-            // ball dropping physics
+
+            // Ball dropping physics
             static float gravitational_force = -k*(g_objectRbt.getTranslation()[1] - anchorY)+ mass * gravity;
             static float air_resistance_force = air_resistance * velocityY;
             static float forceY = gravitational_force - air_resistance_force;
             static float accelerationY = forceY/mass;
+
             // EULER STEPS
             velocityY = velocityY + accelerationY * timeStep;
             positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
+            
             // update ball position
-
             if (g_elastic == false){
                 g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0]+ .03, positionY, g_objectRbt.getTranslation()[2] + .03), Quat());
 
             }
-            else 
-            {
+            else {
                 g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
 
             }
@@ -565,6 +571,7 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
 }
 
 static void display() {
+
     glUseProgram(g_shaderStates[g_activeShader]->program);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -574,14 +581,6 @@ static void display() {
     glfwSwapBuffers(g_window);
 
     checkGlErrors();
-
-    // draw sphere
-    // Matrix4 MVM = rigTFormToMatrix(invEyeRbt) * rigTFormToMatrix(g_objectRbt); //question
-    // Matrix4 NMVM = normalMatrix(MVM);
-    // sendModelViewNormalMatrix(curSS, MVM, NMVM);
-    // safe_glUniform3f(curSS.h_uColor, g_objectColors[0],
-    //                      g_objectColors[1], g_objectColors[2]);
-    // g_bouncyball->draw(curSS);
 }
 
 static void pick() {
@@ -824,20 +823,20 @@ static void keyboard(GLFWwindow* window, int key, int scancode, int action, int 
            }
         break;
         case GLFW_KEY_UP:
-            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .1), g_objectRbt.getTranslation()[2]), Quat());
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .2), g_objectRbt.getTranslation()[2]), Quat());
             cout <<  "new y pos" << g_objectRbt.getTranslation()[1] << endl;
 
         break;
         case GLFW_KEY_DOWN:
-            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .1), g_objectRbt.getTranslation()[2]), Quat());
+            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] - .2), g_objectRbt.getTranslation()[2]), Quat());
             cout <<  "new y pos" << g_objectRbt.getTranslation()[1] << endl;
         break;
         case GLFW_KEY_RIGHT:
-            g_objectRbt = RigTForm(Cvec3((g_objectRbt.getTranslation()[0] + .1), g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat());
+            g_objectRbt = RigTForm(Cvec3((g_objectRbt.getTranslation()[0] + .2), g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat());
             cout <<  "new x pos" << g_objectRbt.getTranslation()[0] << endl;
         break;
         case GLFW_KEY_LEFT:
-            g_objectRbt = RigTForm(Cvec3((g_objectRbt.getTranslation()[0] - .1), g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat());
+            g_objectRbt = RigTForm(Cvec3((g_objectRbt.getTranslation()[0] - .2), g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat());
             cout <<  "new x pos" << g_objectRbt.getTranslation()[0] << endl;
         break;
         case GLFW_KEY_SPACE:
