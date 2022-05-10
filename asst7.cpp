@@ -53,12 +53,12 @@ static float g_bounceMin = -1.10; // maximum height of the bounce
 static float gravity = .2;
 static float mass = .07;
 static float velocityY = 0;
-static float timeStep = 0.03;
+static float timeStep = 0.01;
 static float anchorX = .07;
 static float anchorY = .07;
 static float k = .1;
 static float air_resistance = .1;
-static float friction = .2;
+static float friction = .08;
 
 static GLFWwindow *g_window;
 
@@ -88,7 +88,7 @@ static bool g_up = true;
 static bool g_playingAnimation = false;
 static Cvec3 g_objectColors = Cvec3(1, 0, 0);
 double g_ballpos = 0;
-static RigTForm g_objectRbt = RigTForm((Cvec3(0, -1, -5)), Quat());
+static RigTForm g_objectRbt = RigTForm((Cvec3(0, -1, -4)), Quat());
 static float positionY = g_objectRbt.getTranslation()[1];
 
 // -------- Shaders
@@ -475,7 +475,6 @@ static void drawArcBall(const ShaderState &curSS) {
 }
 
 static void drawStuff(const ShaderState &curSS, bool picking) {
-
     if (g_bounce == true) {
         // then go down
         if (g_objectRbt.getTranslation()[1] > g_bounceMax) {
@@ -487,13 +486,13 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
             g_up = true;
             // Once ball hits the ground there is friction
             if (g_elastic == false){
-                g_objectRbt = RigTForm(Cvec3((g_objectRbt.getTranslation()[0] + .05), g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat::makeXRotation(friction));
+                g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), (Quat::makeXRotation(friction) *  Quat::makeYRotation(friction)));
             }
         }
   
         if (g_up == true) {
             if (g_elastic == false){
-                if (g_bounceMax < -.9) {
+                if (g_bounceMax < -1) {
                 g_bounceMax = 1.4;
                 g_bounce = false;
                 return;
@@ -504,7 +503,7 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
         }
         else {
             if (g_elastic == false){
-                g_bounceMax = g_bounceMax - .08;
+                g_bounceMax = g_bounceMax - .05;
             }
             // ball dropping physics
             static float gravitational_force = -k*(g_objectRbt.getTranslation()[1] - anchorY)+ mass * gravity;
@@ -515,7 +514,16 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
             velocityY = velocityY + accelerationY * timeStep;
             positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
             // update ball position
-            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
+
+            if (g_elastic == false){
+                g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0]+ .03, positionY, g_objectRbt.getTranslation()[2] + .03), Quat());
+
+            }
+            else 
+            {
+                g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
+
+            }
         }
     }
 
@@ -794,24 +802,26 @@ static void keyboard(GLFWwindow* window, int key, int scancode, int action, int 
         case GLFW_KEY_E:
           if (g_elastic == true) {
               g_elastic = false;
+              g_bounceMax = 2;
+              cout <<  "not 100 percent elastic" << endl;
           }
           else {
               g_elastic = true;
+              g_bounceMax = 2;
+              cout <<  "100 percent elastic" << endl;
           }
         break;
         case GLFW_KEY_B:
-
-        //    updateBallPosition();
            if (g_bounce == true) {
                g_bounce = false;
+               cout <<  "no bounce" << endl;
            }
-           else 
-           {
-                g_objectRbt = RigTForm((Cvec3(0, -1, -5)), Quat());
+           else {
+                g_objectRbt = RigTForm((Cvec3(0, -1, -4)), Quat());
+                g_bounceMax = 2;
                 g_bounce = true;
+                cout <<  "bounce" << endl;
            }
-           cout <<  "bounce" << endl;
-        //    g_bounceMax = 1.4;
         break;
         case GLFW_KEY_UP:
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], (g_objectRbt.getTranslation()[1] + .1), g_objectRbt.getTranslation()[2]), Quat());
