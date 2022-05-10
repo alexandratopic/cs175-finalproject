@@ -46,8 +46,8 @@ static const float g_frustFar = -50.0;  // far plane
 static const float g_groundY = -2.0;    // y coordinate of the ground
 static const float g_groundSize = 10.0; // half the ground length
 static double g_numStepsPerFrame = 10;
-static float g_bounceMax = 1.4; // maximum height of the bounce
-static float g_bounceMin = -1.15; // maximum height of the bounce
+static float g_bounceMax = 2; // maximum height of the bounce
+static float g_bounceMin = -1.10; // maximum height of the bounce
 
 static float g_gravity = .1;
 static GLFWwindow *g_window;
@@ -497,15 +497,6 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
                 return;
                 }
             }
-             
-            // static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY);
-            // static float dampingForceY = damping * velocityY;
-            // static float forceY = springForceY + mass * gravity - dampingForceY;
-            // static float accelerationY = forceY/mass;
-            // velocityY = velocityY + accelerationY * timeStep;
-            // positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
-            // velocityY = velocityY + accelerationY * timeStep;
-            // cout << "up" << velocity
 
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.1, g_objectRbt.getTranslation()[2]), Quat());
 
@@ -519,9 +510,7 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
             static float dampingForceY = damping * velocityY;
             static float forceY = springForceY + mass * gravity - dampingForceY;
             static float accelerationY = forceY/mass;
-            // cout << "acceleration" << accelerationY << endl;
             velocityY = velocityY + accelerationY * timeStep;
-            // cout << velocityY << endl;b
             positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
             floor_hits++;
