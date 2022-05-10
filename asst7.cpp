@@ -72,7 +72,7 @@ static double g_arcballScreenRadius = 100; // number of pixels
 static double g_arcballScale = 1;
 
 static bool g_bounce = false;
-static bool g_elastic = false;
+static bool g_elastic = true;
 static bool g_pickingMode = false;
 static bool g_up = true;
 static bool g_playingAnimation = false;
@@ -471,72 +471,50 @@ static float anchorX = .1;
 static float  anchorY = .1;
 static float k = .2;
 static float damping = .1;
+static float friction = .2;
 static void drawStuff(const ShaderState &curSS, bool picking) {
-     static float floor_hits = 0;
-    // // xtra
-    if (g_bounce == true){
-        
-        for (int i = 0; i < g_numStepsPerFrame; ++i)
+
+    if (g_bounce == true) {
+        // then go down
         if (g_objectRbt.getTranslation()[1] > g_bounceMax) {
             g_up = false;
         }
 
+        // go Up
         else if (g_objectRbt.getTranslation()[1] - .1 < g_bounceMin) {
-            // then go down
             g_up = true;
+            // once ball hits the ground there is friction
+            if (g_elastic == false){
+                g_objectRbt = RigTForm(Cvec3((g_objectRbt.getTranslation()[0] + .05), g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat::makeXRotation(friction));
+            }
         }
-        // cout << positionY << endl;
-
+  
         if (g_up == true) {
             if (g_elastic == false){
                 if (g_bounceMax < -.9) {
                 g_bounceMax = 1.4;
                 g_bounce = false;
-                // g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0] + .3, g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat::makeXRotation(-20));
-                // g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0]+.8, g_objectRbt.getTranslation()[1]+.08, g_objectRbt.getTranslation()[2]), Quat());
                 return;
                 }
             }
-
-            g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.1, g_objectRbt.getTranslation()[2]), Quat());
+        g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], g_objectRbt.getTranslation()[1]+.1, g_objectRbt.getTranslation()[2]), Quat());
 
         }
         else {
             if (g_elastic == false){
-                g_bounceMax = g_bounceMax - .06;
+                g_bounceMax = g_bounceMax - .08;
             }
-            static float springForceY = -k*(g_objectRbt.getTranslation()[1] - anchorY);
-            static float friction;
+            // ball dropping physics
+            static float gravitational_force = -k*(g_objectRbt.getTranslation()[1] - anchorY)+ mass * gravity;
             static float dampingForceY = damping * velocityY;
-            static float forceY = springForceY + mass * gravity - dampingForceY;
+            static float forceY = gravitational_force - dampingForceY;
             static float accelerationY = forceY/mass;
+            // EULER STEPS
             velocityY = velocityY + accelerationY * timeStep;
             positionY = g_objectRbt.getTranslation()[1] + velocityY * timeStep;
             g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
-            floor_hits++;
         }
     }
-
-
-
-
-     
-    //  static float springForceY = -k*(positionY - anchorY);
-    //  static float dampingForceY = damping * velocityY;
-    //  static float forceY = springForceY + mass * gravity - dampingForceY;
-    //  static float accelerationY = forceY/mass;
-    //  velocityY = velocityY + accelerationY * timeStep;
-    //  positionY = positionY + velocityY * timeStep;
-     
-    
-    // g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0], positionY, g_objectRbt.getTranslation()[2]), Quat());
-    // cout << g_objectRbt.getTranslation()[0] << g_objectRbt.getTranslation()[1] << g_objectRbt.getTranslation()[2] << endl;
-    //  // end xtra
-
-
-
-
-
 
     // if we are not translating, update arcball scale
     if (!(g_mouseMClickButton || (g_mouseLClickButton && g_mouseRClickButton) ||
@@ -554,10 +532,6 @@ static void drawStuff(const ShaderState &curSS, bool picking) {
     safe_glUniform3f(curSS.h_uLight, eyeLight1[0], eyeLight1[1], eyeLight1[2]);
     safe_glUniform3f(curSS.h_uLight2, eyeLight2[0], eyeLight2[1], eyeLight2[2]);
 
-    
-//    const Cvec3 bouncyball = Cvec3(invEyeRbt * Cvec4(g_bouncyball, 1));
-//    safe_glUniform3f(curSS.h_uBouncyBall, bouncyball[0], bouncyball[1], bouncyball[2]);
-//    g_bouncyball->draw(curSS);
     if (!picking) {
         Drawer drawer(invEyeRbt, curSS);
         g_world->accept(drawer);
@@ -967,13 +941,12 @@ static void keyboard(GLFWwindow* window, int key, int scancode, int action, int 
 
         //    updateBallPosition();
            if (g_bounce == true) {
-                // g_objectRbt = RigTForm(Quat::makeXRotation(-20));
-                // g_objectRbt = RigTForm(Cvec3(g_objectRbt.getTranslation()[0] + .3, g_objectRbt.getTranslation()[1], g_objectRbt.getTranslation()[2]), Quat::makeXRotation(-20));
                g_bounce = false;
            }
            else 
            {
-               g_bounce = true;
+                g_objectRbt = RigTForm((Cvec3(0, -1, -5)), Quat());
+                g_bounce = true;
            }
            cout <<  "bounce" << endl;
         //    g_bounceMax = 1.4;
